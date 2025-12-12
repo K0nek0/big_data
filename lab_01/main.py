@@ -3,26 +3,22 @@ import os
 from collections import defaultdict
 import multiprocessing as mp
 from time import time
+import csv
 
 
 def mapper(line):
-    if not line or ',' not in line or 'Event' in line:
-        return []
-    
-    fields = line.strip().split(',')
-    if len(fields) < 15:
-        return []
+    fields = list(csv.reader([line]))[0]
     
     try:
         result = fields[3]
         white_elo = int(fields[6])
         black_elo = int(fields[7])
-        termination = fields[14]
+        termination = fields[13]
     except:
         return []
     
     output = []
-    is_time_forfeit = "Time" in termination
+    is_time_forfeit = "Time forfeit" in termination
     
     # Считаем ВСЕ игры
     output.append(('total_games', 1))
@@ -69,7 +65,6 @@ def mapreduce_parallel(file_path, num_processes=4):
     chunk_size = len(data_lines) // num_processes
     chunks = [data_lines[i:i + chunk_size] for i in range(0, len(data_lines), chunk_size)]
     
-    start_time = time()
     with mp.Pool(processes=num_processes) as pool:
         results = pool.map(process_chunk, chunks)
     
@@ -78,7 +73,6 @@ def mapreduce_parallel(file_path, num_processes=4):
         all_mapped.extend(result)
     
     final_counts = reducer(all_mapped)
-    print(f"Время обработки: {time() - start_time:.2f}с")
     
     return final_counts
 
@@ -116,4 +110,8 @@ def main():
                 return
 
 if __name__ == "__main__":
+    start_time = time()
+
     main()
+
+    print(f"Время обработки: {time() - start_time:.2f}с")
